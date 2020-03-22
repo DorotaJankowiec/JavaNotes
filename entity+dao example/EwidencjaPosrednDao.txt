@@ -1,0 +1,322 @@
+﻿package database.dao;
+
+import database.exceptions.DocumentInvalidState;
+import database.exceptions.OperationNotAllowed;
+import database.exceptions.StoreException;
+import database.model.DokumentStan;
+import database.model.EwidencjaPosredn;
+import database.model.OperacjaPosredn;
+import database.model.UslugaPosredn;
+import org.hibernate.Session;
+
+import javax.persistence.*;
+import java.util.*;
+
+public class EwidencjaPosrednDao {
+
+  public EwidencjaPosrednDao() {}
+
+  /** Lista wszytkich ewidencji dot. transakcji posrednictwa * */
+  public List<EwidencjaPosredn> getAll() {
+    EntityTransaction trans = Database.getEntityManager().getTransaction();
+    try {
+      try {
+        trans.begin();
+        return Database.getEntityManager()
+            .createNamedQuery("EwidencjaPosredn.findAll", EwidencjaPosredn.class)
+            .getResultList();
+      } catch (Exception e) {
+        trans.rollback();
+        return Collections.emptyList();
+      }
+    } finally {
+      if (trans.isActive()) {
+        trans.commit();
+      }
+      Database.closeEntityManager();
+    }
+  }
+
+  /**
+   * Lista wszytkich ewidencji dot. transakcji posrednictwa dla określonego zakresu pośrednictwa
+   *
+   * @param scopeId - id zakresu pośrednictwa (każda ewidencja ma przypisany konkretny zakres
+   *     pośrednictwa)
+   */
+  public List<EwidencjaPosredn> getAllForScope(final int scopeId) {
+    EntityTransaction trans = Database.getEntityManager().getTransaction();
+    try {
+      try {
+        trans.begin();
+
+        List<EwidencjaPosredn> resultList =
+            Database.getEntityManager()
+                .createNamedQuery("EwidencjaPosredn.findAllForScope", EwidencjaPosredn.class)
+                .setParameter("e_zakres_id", scopeId)
+                .getResultList();
+
+        return resultList;
+
+      } catch (Exception e) {
+        trans.rollback();
+        return Collections.emptyList();
+      }
+    } finally {
+      if (trans.isActive()) {
+        trans.commit();
+      }
+      Database.closeEntityManager();
+    }
+  }
+
+  /**
+   * Wyszukiwanie ewidencji pośrednictwa po numerze ewidencji
+   *
+   * @param nr - numer ksiegi ewidencji posrednictwa
+   */
+  public EwidencjaPosredn findByNr(final String nr) {
+    EntityTransaction trans = Database.getEntityManager().getTransaction();
+    try {
+      try {
+        trans.begin();
+        return Database.getEntityManager().find(EwidencjaPosredn.class, nr);
+      } catch (Exception e) {
+        trans.rollback();
+        return null;
+      }
+    } finally {
+      if (trans.isActive()) {
+        trans.commit();
+      }
+      Database.closeEntityManager();
+    }
+  }
+
+  /**
+   * Zapis ksiegi ewidencji pośrednictwa do bazy danych
+   *
+   * @param ewid - księga ewidencji pośrednictwa (obiekt)
+   */
+  public EwidencjaPosredn store(final EwidencjaPosredn ewid) throws StoreException {
+    if (!Database.isCurrentUserEwid()) {
+      throw new OperationNotAllowed();
+    }
+    Database.getEntityManager().getTransaction().begin();
+    try {
+      try {
+        final EwidencjaPosredn mEwid = Database.getEntityManager().merge(ewid);
+        Database.getEntityManager().getTransaction().commit();
+        return mEwid;
+      } catch (Exception e) {
+        throw new StoreException(e);
+      }
+    } finally {
+      Database.closeEntityManager();
+    }
+  }
+
+  /**
+   * Wpisanie operacji transakcji posrednictwa do ewidencji
+   *
+   * @param operation_id - numer operacji posrednictwa
+   * @param ewid - ewidencja do której dodajemy podaną operacje posrednictwa
+   */
+  public void addPositionToRegister(final int operation_id, final EwidencjaPosredn ewid)
+      throws StoreException {
+    Database.getEntityManager().getTransaction().begin();
+
+    try {
+      try {
+        final Map<String, Object> lockProperties = new HashMap<>();
+        lockProperties.put("javax.persistence.lock.scope", PessimisticLockScope.EXTENDED);
+
+        final OperacjaPosredn operPosredn =
+            Database.getEntityManager()
+                .find(
+                    OperacjaPosredn.class,
+                    operation_id,
+                    LockModeType.PESSIMISTIC_READ,
+                    lockProperties);
+
+        if (operPosredn == null
+            || operPosredn.getWpisStan().equals(DokumentStan.W_EDYCJI)
+            || operPosredn.getWpisStan().equals(DokumentStan.ANULOWANY)) {
+          throw new DocumentInvalidState();
+        }
+
+        operPosredn.setWpisStan(DokumentStan.W_EWIDENCJI);
+        operPosredn.setEwidencja(ewid);
+        operPosredn.setEwidencjaDodalData(new Date());
+        operPosredn.setEwidencjaDodalLogin(Database.getCurrentUserLogin());
+        operPosredn.setEwidencjaDodalImie(Database.getCurrentUserName());
+        operPosredn.setEwidencjaDodalNazwisko(Database.getCurrentUserSurname());
+
+        Database.getEntityManager().merge(operPosredn);
+        Database.getEntityManager().getTransaction().commit();
+      } catch (Exception e) {
+        if (Database.getEntityManager().getTransaction().isActive()) {
+          Database.getEntityManager().getTransaction().rollback();
+        }
+        throw (e instanceof StoreException) ? (StoreException) e : new StoreException(e);
+      }
+    } finally {
+      Database.closeEntityManager();
+    }
+  }
+
+  /**
+   * Lista wszystkich operacji pośrednictwa w danej ksiedze ewidencji pośrednictwa
+   *
+   * @param evidNr - numer księgi ewidencji pośrednictwa
+   */
+  public List<OperacjaPosredn> getAllOperFromReg(final String evidNr) {
+    EntityTransaction trans = Database.getEntityManager().getTransaction();
+    try {
+      try {
+        trans.begin();
+        return Database.getEntityManager()
+            .createNamedQuery("OperacjaPosredn.findAllFromReg", OperacjaPosredn.class)
+            .setParameter("p_nr_ewid", evidNr)
+            .getResultList();
+      } catch (Exception e) {
+        trans.rollback();
+        return Collections.emptyList();
+      }
+    } finally {
+      if (trans.isActive()) {
+        trans.commit();
+      }
+      Database.closeEntityManager();
+    }
+  }
+
+  /**
+   * Lista wszystkich operacje pośrednictwa w danej ksiedze ewidencji pośrednictwa w podanym
+   * zakresie czasowym
+   *
+   * @param evidNr - numer księgi ewidencji pośrednictwa
+   * @param start - data od
+   * @param end - data do
+   */
+  public List<OperacjaPosredn> getAllOperFromRegBetween(
+      final String evidNr, final Date start, final Date end) {
+    EntityTransaction trans = Database.getEntityManager().getTransaction();
+    try {
+      try {
+        trans.begin();
+        return Database.getEntityManager()
+            .createNamedQuery("OperacjaPosredn.findAllFromRegBetween", OperacjaPosredn.class)
+            .setParameter("p_nr_ewid", evidNr)
+            .setParameter("start", start, TemporalType.DATE)
+            .setParameter("end", end, TemporalType.DATE)
+            .getResultList();
+      } catch (Exception e) {
+        trans.rollback();
+        return Collections.emptyList();
+      }
+    } finally {
+      if (trans.isActive()) {
+        trans.commit();
+      }
+      Database.closeEntityManager();
+    }
+  }
+
+  /**
+   * Lista wszystkich operacji pośrednictwa w danej ksiedze ewidencji pośrednictwa i danej uslugi
+   * posrednictwa
+   *
+   * @param evidNr - numer ksiegi ewidencji posrednictwa
+   * @param serviceId - id usługi posrednictwa
+   */
+  public List<OperacjaPosredn> getAllOperFromRegForService(
+      final String evidNr, final int serviceId) {
+    return getAllOperFromRegForService(evidNr, serviceId, -1);
+  }
+
+  /**
+   * Lista wszystkich operacje pośrednictwa w danej ksiedze ewidencji pośrednictwa i danej uslugi
+   * posrednictwa z limitem zwroconych wynikow
+   *
+   * @param evidNr - numer ksiegi ewidencji posrednictwa
+   * @param serviceId - id usługi posrednictwa
+   * @param limit - limit
+   */
+  public List<OperacjaPosredn> getAllOperFromRegForService(
+      final String evidNr, final int serviceId, int limit) {
+    final Session session = Database.getEntityManager().unwrap(Session.class);
+    final EntityTransaction trans = Database.getEntityManager().getTransaction();
+    try {
+      try {
+        if (limit > 0) {
+          session.enableFilter("nrSerLimit").setParameter("limit", limit);
+        }
+        trans.begin();
+        return Database.getEntityManager()
+            .createNamedQuery("OperacjaPosredn.findAllFromRegForService", OperacjaPosredn.class)
+            .setParameter("p_nr_ewid", evidNr)
+            .setParameter("p_service", serviceId)
+            .getResultList();
+      } catch (Exception e) {
+        trans.rollback();
+        return Collections.emptyList();
+      }
+    } finally {
+      if (trans.isActive()) {
+        trans.commit();
+      }
+      if (limit > 0) {
+        session.disableFilter("operacja posrednictwa");
+      }
+      Database.closeEntityManager();
+    }
+  }
+
+  /**
+   * Wykreślenie podanej operacji z ewidencji *
+   *
+   * @param operToRemove operacja do wykreślenia
+   */
+  public void removeOperFromRegister(final OperacjaPosredn operToRemove) throws StoreException {
+    final EntityManager entityManager = Database.getEntityManager();
+    entityManager.setProperty("javax.persistence.lock.scope", PessimisticLockScope.EXTENDED);
+    entityManager.getTransaction().begin();
+
+    try {
+      try {
+        final OperacjaPosredn oper = entityManager.merge(operToRemove);
+
+        if (oper.getWykreslona()) {
+          throw new OperationNotAllowed();
+        }
+
+        entityManager.lock(oper, LockModeType.PESSIMISTIC_WRITE);
+
+        if (operToRemove == null
+            || !(operToRemove.getWpisStan().equals(DokumentStan.W_EWIDENCJI))) {
+          throw new DocumentInvalidState();
+        }
+
+        oper.setWykreslona(true);
+        oper.setEwidencjaWykreslilData(new Date());
+        oper.setEwidencjaWykreslilLogin(Database.getCurrentUserLogin());
+        oper.setEwidencjaWykreslilImie(Database.getCurrentUserName());
+        oper.setEwidencjaWykreslilNazwisko(Database.getCurrentUserSurname());
+        oper.setWpisStan(DokumentStan.ANULOWANY);
+
+        entityManager.getTransaction().commit();
+      } catch (Exception e) {
+        if (entityManager.getTransaction().isActive()) {
+          entityManager.getTransaction().rollback();
+        }
+        if (e instanceof StoreException) {
+          throw (StoreException) e;
+        } else {
+          throw new StoreException(e);
+        }
+      }
+    } finally {
+      Database.closeEntityManager();
+    }
+  }
+}

@@ -1,0 +1,108 @@
+package database.model;
+
+import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
+
+import javax.persistence.*;
+import java.io.Serializable;
+import java.util.Date;
+
+/** Uzyto j.polskiego z uwagi na istniejaca juz strukture tabel bazy danych w jezyku polskim */
+@Entity
+@Table(name = "ewidencja_posredn")
+@NamedQueries({
+  @NamedQuery(
+      name = "EwidencjaPosredn.findAll",
+      query = "SELECT ewid " + "FROM EwidencjaPosredn ewid"),
+  @NamedQuery(
+      name = "EwidencjaPosredn.findAllForScope",
+      query =
+          "SELECT ewid "
+              + "FROM EwidencjaPosredn ewid "
+              + "WHERE (ewid.zakresPosrednId=:e_zakres_id)")
+})
+public class EwidencjaPosredn extends RecursiveTreeObject<EwidencjaPosredn>
+    implements Serializable {
+
+  private String numer;
+  private Integer zakresPosrednId;
+  private Date dataRozp;
+  private Date dataZak;
+  private String utworzyl;
+
+  public EwidencjaPosredn() {}
+
+  public EwidencjaPosredn(
+      String numer, Integer zakresPosrednId, Date dataRozp, Date dataZak, String utworzyl) {
+    this.numer = numer;
+    this.zakresPosrednId = zakresPosrednId;
+    this.dataRozp = dataRozp;
+    this.dataZak = dataZak;
+    this.utworzyl = utworzyl;
+  }
+
+  @Id
+  @Column(name = "numer", unique = true, nullable = false, length = 32)
+  public String getNumer() {
+    return numer;
+  }
+
+  public void setNumer(String numer) {
+    this.numer = numer;
+  }
+
+  @Column(name = "zakres_posredn_id", nullable = false)
+  public Integer getZakresPosrednId() {
+    return zakresPosrednId;
+  }
+
+  public void setZakresPosrednId(Integer zakresPosrednId) {
+    this.zakresPosrednId = zakresPosrednId;
+  }
+
+  @Temporal(TemporalType.DATE)
+  @Column(name = "data_rozp", nullable = false)
+  public Date getDataRozp() {
+    return dataRozp;
+  }
+
+  public void setDataRozp(Date dataRozp) {
+    this.dataRozp = dataRozp;
+  }
+
+  @Temporal(TemporalType.DATE)
+  @Column(name = "data_zak")
+  public Date getDataZak() {
+    return dataZak;
+  }
+
+  public void setDataZak(Date dataZak) {
+    this.dataZak = dataZak;
+  }
+
+  @Column(name = "utworzyl", nullable = false)
+  public String getUtworzyl() {
+    return utworzyl;
+  }
+
+  public void setUtworzyl(String utworzyl) {
+    this.utworzyl = utworzyl;
+  }
+
+  @Override
+  public String toString() {
+    return "EwidencjaPosredn{"
+        + "numer='"
+        + numer
+        + '\''
+        + ", zakresPosrednId="
+        + zakresPosrednId
+        + ", data_rozp="
+        + dataRozp
+        + ", data_zak="
+        + dataZak
+        + ", utworzyl='"
+        + utworzyl
+        + '\''
+        + '}';
+  }
+}

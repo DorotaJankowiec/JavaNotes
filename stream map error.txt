@@ -1,0 +1,7 @@
+/*    var filterResultMap = allPropertiesHashMap.entrySet()
+        .stream()
+        .filter(\el -> ((el.getKey() as String).contains(searchedPhrase)))
+        .collect(Collectors.toMap(\el -> el.getKey(), \el -> el.getValue()))*/
+
+ok in java
+not ok in gosu

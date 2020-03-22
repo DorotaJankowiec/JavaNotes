@@ -1,0 +1,85 @@
+NAVIGATE:
+
+CTRL+N
+Class
+
+CTRL+SHIFT+N
+File
+
+CTRL+ALT+SHIFT+N
+Symbol
+
+CTRL + ALT + L
+Autoformat
+
+//----------------------------------------------------------------
+
+FIND:
+
+CTRL+F
+Find in editor
+
+CTRL+SHIFT+F
+In path
+
+CTRL+H
+View hierarchy
+
+CTRL+E
+Recent files
+
+CTR+Q
+Documentation for a class
+
+ALT + F7 
+Show usages
+
+//----------------------------------------------------------------
+
+BUILD / REBUILD:
+
+CTRL + F9 (+Fn)
+Compiles only modified files since the last compilation 
+
+//----------------------------------------------------------------
+
+RUN/DEBUG SERVER:
+
+(ALT +) SHIFT + F10
+Run Server
+
+(ALT +) SHIFT + F9
+Debug Server 
+
+//----------------------------------------------------------------
+//----------------------------------------------------------------
+//----------------------------------------------------------------
+
+FROM BROWSER TO STUDIO:
+
+ALT + SHIFT + E
+From web-browser. Open PCF file in studio
+
+ALT + SHIFT + I
+From web-browser. Show structure of PCF file
+
+ALT + SHIFT + L
+From web-browser. Update page (modified in studio)
+
+//----------------------------------------------------------------
+//----------------------------------------------------------------
+//----------------------------------------------------------------
+
+CMD
+
+gwb studio
+Run Guidewire Studio
+
+gwb regen-dicionary
+Build dictionary
+
+
+
+
+
+
