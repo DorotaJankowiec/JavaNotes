@@ -1,1 +1,1 @@
-Title: Title from Remote Repo
+Title: Title from Local Repo - commited
