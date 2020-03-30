@@ -3,6 +3,5 @@
         .filter(\el -> ((el.getKey() as String).contains(searchedPhrase)))
         .collect(Collectors.toMap(\el -> el.getKey(), \el -> el.getValue()))*/
 
-ok in java, MASTER_VER
-not ok in gosu, MASTER_VER
-, MASTER_VER
+ok in java, TROUBLE_VER
+not ok in gosu, TROUBLE_VER
